@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import SectionCard from '@/components/SectionCard';
+import SubscriptionModal from '@/components/SubscriptionModal';
 
 interface Section {
     id: string;
@@ -33,6 +34,7 @@ export default function HomePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [installing, setInstalling] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
     // Get shop domain from URL
     const shopDomain = typeof window !== 'undefined'
@@ -118,11 +120,21 @@ export default function HomePage() {
                         <h1 className="text-4xl font-bold font-[family-name:var(--font-playfair)]">
                             <span className="gradient-text">Section House</span>
                         </h1>
-                        {shopDomain && (
-                            <span className="text-sm text-[hsl(var(--color-text-muted))]">
-                                Connected: {shopDomain}
-                            </span>
-                        )}
+                        <div className="flex items-center gap-4">
+                            {shopDomain && (
+                                <>
+                                    <span className="text-sm text-[hsl(var(--color-text-muted))]">
+                                        Connected: {shopDomain}
+                                    </span>
+                                    <button
+                                        onClick={() => setShowSubscriptionModal(true)}
+                                        className="px-4 py-2 bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                                    >
+                                        ⭐ Subscribe
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
                     {/* Search Bar */}
@@ -145,8 +157,8 @@ export default function HomePage() {
                     <button
                         onClick={() => setSelectedCategory('all')}
                         className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === 'all'
-                                ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
-                                : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
+                            ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
+                            : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
                             }`}
                     >
                         All Sections
@@ -156,8 +168,8 @@ export default function HomePage() {
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.slug)}
                             className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === cat.slug
-                                    ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
-                                    : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
+                                ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
+                                : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
                                 }`}
                         >
                             {cat.name}
@@ -200,6 +212,14 @@ export default function HomePage() {
                     </motion.div>
                 )}
             </div>
+
+            {/* Subscription Modal */}
+            {showSubscriptionModal && shopDomain && (
+                <SubscriptionModal
+                    shopDomain={shopDomain}
+                    onClose={() => setShowSubscriptionModal(false)}
+                />
+            )}
         </div>
     );
 }

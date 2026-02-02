@@ -27,6 +27,41 @@ interface SectionCardProps {
 export default function SectionCard({ section, onInstall, isInstalling }: SectionCardProps) {
     const [isHovered, setIsHovered] = useState(false);
 
+    async function handleInstallClick() {
+        if (!section.is_free && section.price > 0) {
+            // Get shop domain from URL
+            const shopDomain = new URLSearchParams(window.location.search).get('shop');
+
+            if (!shopDomain) {
+                alert('Please install this app from your Shopify store');
+                return;
+            }
+
+            // Trigger payment flow
+            try {
+                const res = await fetch('/api/billing/purchase', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        shopDomain,
+                        sectionId: section.id
+                    })
+                });
+
+                const data = await res.json();
+                if (data.confirmationUrl) {
+                    window.top!.location.href = data.confirmationUrl;
+                } else {
+                    alert('Failed to initiate payment');
+                }
+            } catch (error) {
+                alert('Payment error. Please try again.');
+            }
+        } else {
+            onInstall(section.id);
+        }
+    }
+
     return (
         <motion.div
             className="glass-card overflow-hidden group cursor-pointer"
@@ -57,11 +92,11 @@ export default function SectionCard({ section, onInstall, isInstalling }: Sectio
                     transition={{ duration: 0.2 }}
                 >
                     <button
-                        onClick={() => onInstall(section.id)}
+                        onClick={handleInstallClick}
                         disabled={isInstalling}
                         className="btn-primary w-full"
                     >
-                        {isInstalling ? 'Installing...' : 'Install Section'}
+                        {isInstalling ? 'Installing...' : section.is_free ? 'Install Section' : `Buy for $${section.price}`}
                     </button>
                 </motion.div>
 

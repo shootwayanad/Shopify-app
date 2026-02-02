@@ -46,23 +46,41 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // TODO: Check if section is paid and user has purchased
+        // Check if section requires payment
         if (!section.is_free && section.price > 0) {
-            const { data: purchase } = await supabaseAdmin
-                .from('purchases')
-                .select('id')
-                .eq('shop_id', shop.id)
-                .eq('section_id', sectionId)
-                .eq('payment_status', 'completed')
+            // Check for active subscription OR one-time purchase
+            const { data: shopData } = await supabaseAdmin
+                .from('shops')
+                .select('subscription_status')
+                .eq('id', shop.id)
                 .single();
 
-            if (!purchase) {
-                return NextResponse.json(
-                    { error: 'Section not purchased' },
-                    { status: 403 }
-                );
+            const hasSubscription = shopData?.subscription_status === 'active';
+
+            if (!hasSubscription) {
+                // Check for one-time purchase
+                const { data: purchase } = await supabaseAdmin
+                    .from('billing_charges')
+                    .select('id')
+                    .eq('shop_id', shop.id)
+                    .eq('section_id', sectionId)
+                    .eq('charge_type', 'one_time')
+                    .eq('status', 'active')
+                    .single();
+
+                if (!purchase) {
+                    return NextResponse.json(
+                        {
+                            error: 'Payment required',
+                            requiresPayment: true,
+                            sectionPrice: section.price
+                        },
+                        { status: 402 }
+                    );
+                }
             }
         }
+
 
         // Install section to Shopify
         const installed = await installSectionToShopify(
