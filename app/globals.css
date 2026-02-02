@@ -1,3 +1,88 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        /* Premium Color Palette */
+        --color-primary: 14 86% 55%;
+        /* Teal */
+        --color-primary-dark: 14 86% 45%;
+        --color-accent: 25 95% 53%;
+        /* Warm Orange */
+        --color-accent-dark: 25 95% 43%;
+        --color-bg: 220 17% 7%;
+        /* Deep Dark */
+        --color-surface: 220 14% 11%;
+        --color-text: 0 0% 98%;
+        --color-text-muted: 0 0% 70%;
+        --color-border: 220 14% 18%;
+
+        /* Shadows */
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+        --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.3);
+    }
+
+
+    body {
+        @apply bg-[hsl(var(--color-bg))] text-[hsl(var(--color-text))];
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-[hsl(var(--color-surface))];
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-[hsl(var(--color-primary))] rounded-full;
+    }
+}
+
+@layer components {
+
+    /* Gradient Button */
+    .btn-primary {
+        @apply px-6 py-3 rounded-xl font-semibold text-white;
+        @apply bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))];
+        @apply shadow-md hover:shadow-lg transition-all duration-300;
+        @apply hover:scale-105 active:scale-95;
+    }
+
+    /* Glass Card */
+    .glass-card {
+        @apply bg-[hsl(var(--color-surface))]/80 backdrop-blur-xl;
+        @apply border border-[hsl(var(--color-border))];
+        @apply rounded-2xl shadow-lg;
+    }
+
+    /* Gradient Text */
+    .gradient-text {
+        @apply bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))];
+        @apply bg-clip-text text-transparent;
+    }
+}
+
+@layer utilities {
+    .animate-fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
