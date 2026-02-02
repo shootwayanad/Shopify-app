@@ -13,10 +13,10 @@ interface Plan {
 
 export default function SubscriptionModal({
     shopDomain,
-    onClose
+    onCloseAction
 }: {
     shopDomain: string;
-    onClose: () => void;
+    onCloseAction: () => void;
 }) {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(false);
@@ -90,7 +90,7 @@ export default function SubscriptionModal({
                 </div>
 
                 <button
-                    onClick={onClose}
+                    onClick={onCloseAction}
                     className="mt-6 text-[hsl(var(--color-text-muted))] hover:text-white"
                 >
                     Close

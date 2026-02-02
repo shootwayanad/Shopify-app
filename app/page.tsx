@@ -60,17 +60,22 @@ export default function HomePage() {
         async function fetchSections() {
             setLoading(true);
             try {
-                const params = new URLSearchParams();
-                if (selectedCategory !== 'all') {
-                    params.set('category', selectedCategory);
+                if (selectedCategory === 'installed') {
+                    const res = await fetch(`/api/sections/installed?shop=${shopDomain}`);
+                    const data = await res.json();
+                    setSections(data.sections || []);
+                } else {
+                    const params = new URLSearchParams();
+                    if (selectedCategory !== 'all') {
+                        params.set('category', selectedCategory);
+                    }
+                    if (searchQuery) {
+                        params.set('search', searchQuery);
+                    }
+                    const res = await fetch(`/api/sections?${params.toString()}`);
+                    const data = await res.json();
+                    setSections(data.sections || []);
                 }
-                if (searchQuery) {
-                    params.set('search', searchQuery);
-                }
-
-                const res = await fetch(`/api/sections?${params.toString()}`);
-                const data = await res.json();
-                setSections(data.sections || []);
             } catch (error) {
                 console.error('Failed to fetch sections:', error);
             } finally {
@@ -80,7 +85,7 @@ export default function HomePage() {
 
         const debounce = setTimeout(fetchSections, 300);
         return () => clearTimeout(debounce);
-    }, [selectedCategory, searchQuery]);
+    }, [selectedCategory, searchQuery, shopDomain]);
 
     // Install section
     async function handleInstall(sectionId: string) {
@@ -111,6 +116,30 @@ export default function HomePage() {
         }
     }
 
+    async function handleUninstall(sectionId: string) {
+        if (!confirm('Are you sure you want to remove this section from your theme?')) return;
+
+        setInstalling(sectionId);
+        try {
+            const res = await fetch(`/api/sections/uninstall?shop=${shopDomain}&id=${sectionId}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                alert('✅ Section removed successfully');
+                if (selectedCategory === 'installed') {
+                    setSections(sections.filter(s => s.id !== sectionId));
+                }
+            } else {
+                alert('❌ Failed to remove section');
+            }
+        } catch (error) {
+            alert('❌ Error during uninstallation');
+        } finally {
+            setInstalling(null);
+        }
+    }
+
     return (
         <div className="min-h-screen bg-[hsl(var(--color-bg))]">
             {/* Header */}
@@ -126,6 +155,12 @@ export default function HomePage() {
                                     <span className="text-sm text-[hsl(var(--color-text-muted))]">
                                         Connected: {shopDomain}
                                     </span>
+                                    <button
+                                        onClick={() => window.location.href = `/billing?shop=${shopDomain}`}
+                                        className="px-4 py-2 border border-[hsl(var(--color-border))] rounded-lg text-sm hover:bg-white/5 transition-colors"
+                                    >
+                                        Billing History
+                                    </button>
                                     <button
                                         onClick={() => setShowSubscriptionModal(true)}
                                         className="px-4 py-2 bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
@@ -162,6 +197,15 @@ export default function HomePage() {
                             }`}
                     >
                         All Sections
+                    </button>
+                    <button
+                        onClick={() => setSelectedCategory('installed')}
+                        className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === 'installed'
+                            ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white shadow-lg'
+                            : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))] border border-[hsl(var(--color-border))]'
+                            }`}
+                    >
+                        📁 My Sections
                     </button>
                     {categories.map((cat) => (
                         <button
@@ -205,6 +249,7 @@ export default function HomePage() {
                                 <SectionCard
                                     section={section}
                                     onInstall={handleInstall}
+                                    onUninstall={selectedCategory === 'installed' ? handleUninstall : undefined}
                                     isInstalling={installing === section.id}
                                 />
                             </motion.div>
@@ -217,7 +262,7 @@ export default function HomePage() {
             {showSubscriptionModal && shopDomain && (
                 <SubscriptionModal
                     shopDomain={shopDomain}
-                    onClose={() => setShowSubscriptionModal(false)}
+                    onCloseAction={() => setShowSubscriptionModal(false)}
                 />
             )}
         </div>

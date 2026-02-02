@@ -21,10 +21,11 @@ interface Section {
 interface SectionCardProps {
     section: Section;
     onInstall: (sectionId: string) => void;
+    onUninstall?: (sectionId: string) => void;
     isInstalling?: boolean;
 }
 
-export default function SectionCard({ section, onInstall, isInstalling }: SectionCardProps) {
+export default function SectionCard({ section, onInstall, onUninstall, isInstalling }: SectionCardProps) {
     const [isHovered, setIsHovered] = useState(false);
 
     async function handleInstallClick() {
@@ -86,18 +87,34 @@ export default function SectionCard({ section, onInstall, isInstalling }: Sectio
 
                 {/* Overlay on Hover */}
                 <motion.div
-                    className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-center p-4"
+                    className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex flex-col items-center justify-end p-4 gap-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: isHovered ? 1 : 0 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <button
-                        onClick={handleInstallClick}
-                        disabled={isInstalling}
-                        className="btn-primary w-full"
-                    >
-                        {isInstalling ? 'Installing...' : section.is_free ? 'Install Section' : `Buy for $${section.price}`}
-                    </button>
+                    {onUninstall ? (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUninstall(section.id);
+                            }}
+                            disabled={isInstalling}
+                            className="bg-red-500 hover:bg-red-600 text-white w-full py-2 rounded-lg font-semibold transition-colors disabled:opacity-50"
+                        >
+                            {isInstalling ? 'Removing...' : 'Uninstall Section'}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleInstallClick();
+                            }}
+                            disabled={isInstalling}
+                            className="btn-primary w-full"
+                        >
+                            {isInstalling ? 'Installing...' : section.is_free ? 'Install Section' : `Buy for $${section.price}`}
+                        </button>
+                    )}
                 </motion.div>
 
                 {/* Price Badge */}
