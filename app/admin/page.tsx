@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import SectionForm from '@/components/SectionForm';
 
 interface Section {
     id: string;
@@ -188,24 +189,17 @@ export default function AdminPage() {
                 )}
             </div>
 
-            {/* Modal (simplified for MVP) */}
+            {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-[hsl(var(--color-surface))] p-6 rounded-2xl max-w-2xl w-full mx-4">
-                        <h3 className="text-2xl font-bold mb-4">
-                            {currentSection ? 'Edit Section' : 'Create Section'}
-                        </h3>
-                        <p className="text-[hsl(var(--color-text-muted))] mb-4">
-                            Build a full section creation form using react-hook-form in the next iteration.
-                        </p>
-                        <button
-                            onClick={() => setShowModal(false)}
-                            className="btn-primary"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
+                <SectionForm
+                    categories={categories}
+                    initialData={currentSection}
+                    onClose={() => setShowModal(false)}
+                    onSuccess={() => {
+                        fetchSections();
+                        setShowModal(false);
+                    }}
+                />
             )}
         </div>
     );
