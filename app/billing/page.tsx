@@ -108,11 +108,13 @@ export default function BillingPage() {
             }}
         >
             {loading ? (
-                <Box padding="1000" textAlign="center">
-                    <Spinner size="large" />
-                    <Box paddingBlockStart="400">
-                        <Text as="p" tone="subdued">Loading billing details...</Text>
-                    </Box>
+                <Box padding="1000">
+                    <BlockStack align="center" inlineAlign="center">
+                        <Spinner size="large" />
+                        <Box paddingBlockStart="400">
+                            <Text as="p" tone="subdued">Loading billing details...</Text>
+                        </Box>
+                    </BlockStack>
                 </Box>
             ) : (
                 <Layout>
@@ -167,8 +169,10 @@ export default function BillingPage() {
                             </Box>
 
                             {charges.length === 0 ? (
-                                <Box padding="1000" textAlign="center">
-                                    <Text as="p" tone="subdued">No transactions found yet.</Text>
+                                <Box padding="1000">
+                                    <BlockStack align="center" inlineAlign="center">
+                                        <Text as="p" tone="subdued">No transactions found yet.</Text>
+                                    </BlockStack>
                                 </Box>
                             ) : (
                                 <IndexTable

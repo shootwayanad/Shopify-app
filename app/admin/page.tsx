@@ -21,7 +21,8 @@ import {
     Badge,
     Layout,
     EmptyState,
-    Icon
+    Icon,
+    Grid
 } from '@shopify/polaris';
 import {
     PlusIcon,
@@ -251,8 +252,8 @@ export default function AdminDashboard() {
             >
                 {/* Stats Row */}
                 <Box paddingBlockEnd="600">
-                    <Layout>
-                        <Layout.Section variant="oneQuarter">
+                    <Grid>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3 }}>
                             <Card>
                                 <Box padding="400">
                                     <InlineStack align="space-between">
@@ -264,8 +265,8 @@ export default function AdminDashboard() {
                                     </InlineStack>
                                 </Box>
                             </Card>
-                        </Layout.Section>
-                        <Layout.Section variant="oneQuarter">
+                        </Grid.Cell>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3 }}>
                             <Card>
                                 <Box padding="400">
                                     <InlineStack align="space-between">
@@ -277,8 +278,8 @@ export default function AdminDashboard() {
                                     </InlineStack>
                                 </Box>
                             </Card>
-                        </Layout.Section>
-                        <Layout.Section variant="oneQuarter">
+                        </Grid.Cell>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3 }}>
                             <Card>
                                 <Box padding="400">
                                     <InlineStack align="space-between">
@@ -286,12 +287,12 @@ export default function AdminDashboard() {
                                             <Text as="p" variant="bodySm" tone="subdued">Paid Sections</Text>
                                             <Text as="p" variant="headingLg">{stats.paid}</Text>
                                         </BlockStack>
-                                        <Icon source={AppsIcon} tone="attention" />
+                                        <Icon source={AppsIcon} tone="warning" />
                                     </InlineStack>
                                 </Box>
                             </Card>
-                        </Layout.Section>
-                        <Layout.Section variant="oneQuarter">
+                        </Grid.Cell>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3 }}>
                             <Card>
                                 <Box padding="400">
                                     <InlineStack align="space-between">
@@ -303,15 +304,17 @@ export default function AdminDashboard() {
                                     </InlineStack>
                                 </Box>
                             </Card>
-                        </Layout.Section>
-                    </Layout>
+                        </Grid.Cell>
+                    </Grid>
                 </Box>
 
                 {/* Main Table */}
                 <Card padding="0">
                     {loading ? (
-                        <Box padding="1000" textAlign="center">
-                            <Spinner size="large" />
+                        <Box padding="1000">
+                            <BlockStack align="center" inlineAlign="center">
+                                <Spinner size="large" />
+                            </BlockStack>
                         </Box>
                     ) : sections.length === 0 ? (
                         <EmptyState
@@ -364,7 +367,6 @@ export default function AdminDashboard() {
                                 value={formData.name}
                                 onChange={(val) => setFormData({ ...formData, name: val })}
                                 autoComplete="off"
-                                required
                             />
                             <Select
                                 label="Category"
@@ -390,19 +392,15 @@ export default function AdminDashboard() {
                                 value={formData.liquid_code}
                                 onChange={(val) => setFormData({ ...formData, liquid_code: val })}
                                 multiline={8}
-                                monospaced
                                 autoComplete="off"
-                                required
                             />
                             <TextField
                                 label="Schema JSON"
                                 value={formData.schema_json}
                                 onChange={(val) => setFormData({ ...formData, schema_json: val })}
                                 multiline={8}
-                                monospaced
                                 autoComplete="off"
-                                error={schemaError}
-                                required
+                                error={schemaError || undefined}
                             />
                             <FormLayout.Group>
                                 <TextField
@@ -410,7 +408,6 @@ export default function AdminDashboard() {
                                     value={formData.css_code}
                                     onChange={(val) => setFormData({ ...formData, css_code: val })}
                                     multiline={4}
-                                    monospaced
                                     autoComplete="off"
                                 />
                                 <TextField
@@ -418,7 +415,6 @@ export default function AdminDashboard() {
                                     value={formData.js_code}
                                     onChange={(val) => setFormData({ ...formData, js_code: val })}
                                     multiline={4}
-                                    monospaced
                                     autoComplete="off"
                                 />
                             </FormLayout.Group>

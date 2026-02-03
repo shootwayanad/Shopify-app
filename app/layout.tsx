@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "@shopify/polaris/styles.css";
+import "@shopify/polaris/build/esm/styles.css";
 import "./globals.css";
 import { ClientProviders } from "@/components/ClientProviders";
 
