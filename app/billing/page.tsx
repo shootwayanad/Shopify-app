@@ -1,7 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import {
+    Page,
+    Layout,
+    Card,
+    Box,
+    BlockStack,
+    InlineStack,
+    Text,
+    Badge,
+    Spinner,
+    IndexTable,
+    EmptyState,
+    Button
+} from '@shopify/polaris';
 
 interface SubscriptionDetails {
     status: string;
@@ -48,156 +61,135 @@ export default function BillingPage() {
 
     if (!shopDomain) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--color-bg))] p-4 text-center">
-                <div className="glass-card p-8 max-w-md">
-                    <h2 className="text-2xl font-bold mb-4">Shop Not Found</h2>
-                    <p className="text-[hsl(var(--color-text-muted))]">Please access this page from your Shopify admin panel.</p>
-                </div>
-            </div>
+            <Page>
+                <EmptyState
+                    heading="Shop not found"
+                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                >
+                    <p>Please access this page from your Shopify admin panel.</p>
+                </EmptyState>
+            </Page>
         );
     }
 
+    const rowMarkup = charges.map(
+        ({ id, charge_type, amount, status, created_at, section_name }, index) => (
+            <IndexTable.Row id={id} key={id} position={index}>
+                <IndexTable.Cell>
+                    {new Date(created_at).toLocaleDateString()}
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                    <Text variant="bodyMd" fontWeight="bold" as="span">
+                        {charge_type === 'subscription' ? 'Plan Subscription' : `Section: ${section_name || 'Premium'}`}
+                    </Text>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                    <Badge tone="info">{charge_type}</Badge>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                    <Text variant="bodyMd" fontWeight="bold" as="span">${amount.toFixed(2)}</Text>
+                </IndexTable.Cell>
+                <IndexTable.Cell>
+                    <Badge tone={status === 'active' ? 'success' : 'attention'}>
+                        {status.toUpperCase()}
+                    </Badge>
+                </IndexTable.Cell>
+            </IndexTable.Row>
+        ),
+    );
+
     return (
-        <div className="min-h-screen bg-[hsl(var(--color-bg))]">
-            <header className="border-b border-[hsl(var(--color-border))] bg-[hsl(var(--color-surface))]/50 backdrop-blur-lg">
-                <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-4xl font-bold font-[family-name:var(--font-playfair)]">
-                            <span className="gradient-text">Billing & Subscriptions</span>
-                        </h1>
-                        <p className="text-[hsl(var(--color-text-muted))] mt-1">Manage your payment history and plans</p>
-                    </div>
-                    <button
-                        onClick={() => window.location.href = `/?shop=${shopDomain}`}
-                        className="px-4 py-2 border border-[hsl(var(--color-border))] rounded-lg hover:bg-white/5 transition-colors"
-                    >
-                        ← Back to Gallery
-                    </button>
-                </div>
-            </header>
+        <Page
+            title="Billing & Subscriptions"
+            subtitle="Manage your payment history and plans"
+            backAction={{
+                content: 'Back to Gallery',
+                onAction: () => window.location.href = `/?shop=${shopDomain}`
+            }}
+        >
+            {loading ? (
+                <Box padding="1000" textAlign="center">
+                    <Spinner size="large" />
+                    <Box paddingBlockStart="400">
+                        <Text as="p" tone="subdued">Loading billing details...</Text>
+                    </Box>
+                </Box>
+            ) : (
+                <Layout>
+                    <Layout.Section variant="oneThird">
+                        <Card>
+                            <Box padding="400">
+                                <BlockStack gap="400">
+                                    <Text as="h2" variant="headingMd">🛡️ Current Plan</Text>
 
-            <main className="max-w-7xl mx-auto px-4 py-8">
-                {loading ? (
-                    <div className="text-center py-20 flex flex-col items-center">
-                        <div className="inline-block animate-spin text-6xl mb-4">⚙️</div>
-                        <p className="text-[hsl(var(--color-text-muted))]">Loading your billing details...</p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Subscription Status */}
-                        <div className="lg:col-span-1">
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="glass-card p-6 border-t-4 border-[hsl(var(--color-primary))]"
-                            >
-                                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                    <span>🛡️</span> Current Plan
-                                </h2>
-
-                                <div className="space-y-4">
-                                    <div>
-                                        <p className="text-sm text-[hsl(var(--color-text-muted))]">Plan Status</p>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-2xl font-bold ${subscription?.status === 'active' ? 'text-green-500' : 'text-gray-400'}`}>
+                                    <BlockStack gap="200">
+                                        <Text as="p" variant="bodySm" tone="subdued">Plan Status</Text>
+                                        <InlineStack gap="200" blockAlign="center">
+                                            <Text as="p" variant="headingLg" tone={subscription?.status === 'active' ? 'success' : 'subdued'}>
                                                 {subscription?.status === 'active' ? 'Active' : 'No Active Subscription'}
-                                            </span>
+                                            </Text>
                                             {subscription?.status === 'active' && (
-                                                <span className="animate-pulse h-2 w-2 rounded-full bg-green-500"></span>
+                                                <Badge tone="success" progress="complete" size="small" />
                                             )}
-                                        </div>
-                                    </div>
+                                        </InlineStack>
+                                    </BlockStack>
 
                                     {subscription?.status === 'active' && (
-                                        <>
-                                            <div>
-                                                <p className="text-sm text-[hsl(var(--color-text-muted))]">Current Plan</p>
-                                                <p className="text-lg font-semibold">{subscription.plan}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-[hsl(var(--color-text-muted))]">Next Billing Date</p>
-                                                <p className="text-lg font-semibold">
+                                        <BlockStack gap="300">
+                                            <Box>
+                                                <Text as="p" variant="bodySm" tone="subdued">Current Plan</Text>
+                                                <Text as="p" variant="bodyMd" fontWeight="bold">{subscription.plan}</Text>
+                                            </Box>
+                                            <Box>
+                                                <Text as="p" variant="bodySm" tone="subdued">Next Billing Date</Text>
+                                                <Text as="p" variant="bodyMd" fontWeight="bold">
                                                     {new Date(subscription.expires_at).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <button className="w-full py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors">
-                                                Cancel Subscription
-                                            </button>
-                                        </>
+                                                </Text>
+                                            </Box>
+                                            <Button tone="critical" onClick={() => { }}>Cancel Subscription</Button>
+                                        </BlockStack>
                                     )}
 
                                     {subscription?.status !== 'active' && (
-                                        <button
-                                            onClick={() => window.location.href = `/?shop=${shopDomain}`}
-                                            className="btn-primary w-full"
-                                        >
+                                        <Button variant="primary" onClick={() => window.location.href = `/?shop=${shopDomain}`}>
                                             View Plans
-                                        </button>
+                                        </Button>
                                     )}
-                                </div>
-                            </motion.div>
-                        </div>
+                                </BlockStack>
+                            </Box>
+                        </Card>
+                    </Layout.Section>
 
-                        {/* Recent Charges */}
-                        <div className="lg:col-span-2">
-                            <motion.div
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="glass-card p-6"
-                            >
-                                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                    <span>📜</span> Billing History
-                                </h2>
+                    <Layout.Section>
+                        <Card padding="0">
+                            <Box padding="400">
+                                <Text as="h2" variant="headingMd">📜 Billing History</Text>
+                            </Box>
 
-                                {charges.length === 0 ? (
-                                    <div className="text-center py-12 border-2 border-dashed border-[hsl(var(--color-border))] rounded-2xl">
-                                        <p className="text-[hsl(var(--color-text-muted))]">No transitions found yet.</p>
-                                    </div>
-                                ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead className="text-sm text-[hsl(var(--color-text-muted))] border-b border-[hsl(var(--color-border))]">
-                                                <tr>
-                                                    <th className="pb-4 font-medium">Date</th>
-                                                    <th className="pb-4 font-medium">Description</th>
-                                                    <th className="pb-4 font-medium">Type</th>
-                                                    <th className="pb-4 font-medium">Amount</th>
-                                                    <th className="pb-4 font-medium">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="text-sm divide-y divide-[hsl(var(--color-border))]">
-                                                {charges.map((charge) => (
-                                                    <tr key={charge.id} className="hover:bg-white/5 transition-colors">
-                                                        <td className="py-4 whitespace-nowrap">
-                                                            {new Date(charge.created_at).toLocaleDateString()}
-                                                        </td>
-                                                        <td className="py-4 font-medium">
-                                                            {charge.charge_type === 'subscription' ? 'Plan Subscription' : `Section: ${charge.section_name || 'Premium'}`}
-                                                        </td>
-                                                        <td className="py-4">
-                                                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] uppercase font-bold">
-                                                                {charge.charge_type}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-4 font-bold text-[hsl(var(--color-primary))]">
-                                                            ${charge.amount.toFixed(2)}
-                                                        </td>
-                                                        <td className="py-4">
-                                                            <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${charge.status === 'active' ? 'bg-green-500/10 text-green-500' : 'bg-gray-500/10 text-gray-500'}`}>
-                                                                {charge.status.charAt(0).toUpperCase() + charge.status.slice(1)}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                )}
-                            </motion.div>
-                        </div>
-                    </div>
-                )}
-            </main>
-        </div>
+                            {charges.length === 0 ? (
+                                <Box padding="1000" textAlign="center">
+                                    <Text as="p" tone="subdued">No transactions found yet.</Text>
+                                </Box>
+                            ) : (
+                                <IndexTable
+                                    resourceName={{ singular: 'charge', plural: 'charges' }}
+                                    itemCount={charges.length}
+                                    selectable={false}
+                                    headings={[
+                                        { title: 'Date' },
+                                        { title: 'Description' },
+                                        { title: 'Type' },
+                                        { title: 'Amount' },
+                                        { title: 'Status' },
+                                    ]}
+                                >
+                                    {rowMarkup}
+                                </IndexTable>
+                            )}
+                        </Card>
+                    </Layout.Section>
+                </Layout>
+            )}
+        </Page>
     );
 }

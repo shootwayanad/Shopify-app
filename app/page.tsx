@@ -1,8 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import SectionCard from '@/components/SectionCard';
+import {
+    Box,
+    InlineStack,
+    BlockStack,
+    Text,
+    TextField,
+    Button,
+    UnstyledButton,
+    Icon,
+    Spinner,
+    EmptyState,
+    Layout,
+    Card,
+    Badge
+} from '@shopify/polaris';
+import {
+    SearchIcon,
+    FilterIcon,
+    StarFilledIcon,
+    AppsIcon,
+    ViewIcon,
+    PlusIcon,
+    HeartIcon
+} from '@shopify/polaris-icons';
 import SubscriptionModal from '@/components/SubscriptionModal';
 
 interface Section {
@@ -36,9 +58,13 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
     const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
-    // Get shop domain from URL
-    const shopDomain = typeof window !== 'undefined'
+    // Get shop domain from URL and clean it
+    const rawShop = typeof window !== 'undefined'
         ? new URLSearchParams(window.location.search).get('shop')
+        : null;
+
+    const shopDomain = rawShop
+        ? rawShop.replace(/^https?:\/\//, '').replace(/\/$/, '')
         : null;
 
     // Fetch categories
@@ -107,7 +133,14 @@ export default function HomePage() {
             if (res.ok) {
                 alert('✅ Section installed successfully! Check your theme editor.');
             } else {
-                alert(`❌ Installation failed: ${data.error}`);
+                if (res.status === 404) {
+                    const retry = confirm(`❌ ${data.error}\n\nThis usually happens if your shop isn't registered yet. Would you like to try re-authenticating your store?`);
+                    if (retry) {
+                        window.location.href = `/api/auth?shop=${shopDomain}`;
+                    }
+                } else {
+                    alert(`❌ Installation failed: ${data.error}`);
+                }
             }
         } catch (error) {
             alert('❌ Installation failed. Please try again.');
@@ -140,131 +173,237 @@ export default function HomePage() {
         }
     }
 
+    async function handlePurchaseFlow(section: Section) {
+        if (!shopDomain) return;
+
+        try {
+            const res = await fetch('/api/billing/purchase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    shopDomain,
+                    sectionId: section.id
+                })
+            });
+
+            const data = await res.json();
+            if (data.confirmationUrl) {
+                window.top!.location.href = data.confirmationUrl;
+            } else {
+                alert('Failed to initiate payment');
+            }
+        } catch (error) {
+            alert('Payment error. Please try again.');
+        }
+    }
+
     return (
-        <div className="min-h-screen bg-[hsl(var(--color-bg))]">
-            {/* Header */}
-            <header className="border-b border-[hsl(var(--color-border))] bg-[hsl(var(--color-surface))]/50 backdrop-blur-lg sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h1 className="text-4xl font-bold font-[family-name:var(--font-playfair)]">
-                            <span className="gradient-text">Section House</span>
-                        </h1>
-                        <div className="flex items-center gap-4">
-                            {shopDomain && (
-                                <>
-                                    <span className="text-sm text-[hsl(var(--color-text-muted))]">
-                                        Connected: {shopDomain}
-                                    </span>
-                                    <button
-                                        onClick={() => window.location.href = `/billing?shop=${shopDomain}`}
-                                        className="px-4 py-2 border border-[hsl(var(--color-border))] rounded-lg text-sm hover:bg-white/5 transition-colors"
-                                    >
-                                        Billing History
-                                    </button>
-                                    <button
-                                        onClick={() => setShowSubscriptionModal(true)}
-                                        className="px-4 py-2 bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
-                                    >
-                                        ⭐ Subscribe
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
+        <Box background="bg-surface" minHeight="100vh">
+            {/* Header Content Inline to avoid reference issues */}
+            <Box padding="400" background="bg-surface" borderBlockEndWidth="025">
+                <InlineStack align="space-between" blockAlign="center" gap="400">
+                    <InlineStack gap="200" blockAlign="center">
+                        <Box background="bg-fill-brand-active" padding="200" borderRadius="200">
+                            <Text as="span" variant="headingMd" tone="base">S</Text>
+                        </Box>
+                        <Text as="h1" variant="headingMd">Section Store</Text>
+                    </InlineStack>
 
-                    {/* Search Bar */}
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Search sections..."
+                    <Box width="60%">
+                        <TextField
+                            label="Search for sections"
+                            labelHidden
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-4 py-3 pl-12 bg-[hsl(var(--color-surface))] border border-[hsl(var(--color-border))] rounded-xl text-[hsl(var(--color-text))] placeholder-[hsl(var(--color-text-muted))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--color-primary))]"
+                            onChange={(value) => setSearchQuery(value)}
+                            placeholder="Search for sections"
+                            prefix={<Icon source={SearchIcon} />}
+                            autoComplete="off"
                         />
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
-                    </div>
-                </div>
-            </header>
+                    </Box>
 
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                {/* Category Tabs */}
-                <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
-                    <button
-                        onClick={() => setSelectedCategory('all')}
-                        className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === 'all'
-                            ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
-                            : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
-                            }`}
-                    >
-                        All Sections
-                    </button>
-                    <button
-                        onClick={() => setSelectedCategory('installed')}
-                        className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === 'installed'
-                            ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white shadow-lg'
-                            : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))] border border-[hsl(var(--color-border))]'
-                            }`}
-                    >
-                        📁 My Sections
-                    </button>
-                    {categories.map((cat) => (
-                        <button
-                            key={cat.id}
-                            onClick={() => setSelectedCategory(cat.slug)}
-                            className={`px-6 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${selectedCategory === cat.slug
-                                ? 'bg-gradient-to-r from-[hsl(var(--color-primary))] to-[hsl(var(--color-accent))] text-white'
-                                : 'bg-[hsl(var(--color-surface))] text-[hsl(var(--color-text-muted))] hover:text-[hsl(var(--color-text))]'
-                                }`}
+                    <InlineStack gap="200">
+                        <Button
+                            icon={FilterIcon}
+                            onClick={() => { }}
                         >
-                            {cat.name}
-                        </button>
-                    ))}
-                </div>
+                            Categories
+                        </Button>
+                        <Button variant="primary" onClick={() => setShowSubscriptionModal(true)}>
+                            Subscribe
+                        </Button>
+                    </InlineStack>
+                </InlineStack>
+            </Box>
 
-                {/* Sections Grid */}
-                {loading ? (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin text-6xl">⚙️</div>
-                        <p className="mt-4 text-[hsl(var(--color-text-muted))]">Loading sections...</p>
-                    </div>
-                ) : sections.length === 0 ? (
-                    <div className="text-center py-20">
-                        <p className="text-2xl mb-2">🔍</p>
-                        <p className="text-[hsl(var(--color-text-muted))]">No sections found</p>
-                    </div>
-                ) : (
-                    <motion.div
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        {sections.map((section, index) => (
-                            <motion.div
-                                key={section.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05, duration: 0.4 }}
+            <Box paddingInlineStart="400" paddingInlineEnd="400" paddingBlockStart="400" paddingBlockEnd="400">
+                {/* Category Pills */}
+                <Box paddingBlockEnd="600">
+                    <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: '16px', paddingBottom: '12px', paddingLeft: '4px' }}>
+                        <UnstyledButton
+                            onClick={() => setSelectedCategory('all')}
+                        >
+                            <Box
+                                padding="200"
+                                borderRadius="200"
+                                background={selectedCategory === 'all' ? 'bg-fill-brand' : undefined}
                             >
-                                <SectionCard
-                                    section={section}
-                                    onInstall={handleInstall}
-                                    onUninstall={selectedCategory === 'installed' ? handleUninstall : undefined}
-                                    isInstalling={installing === section.id}
-                                />
-                            </motion.div>
+                                <BlockStack align="center" inlineAlign="center" gap="100">
+                                    <Icon source={StarFilledIcon} tone={selectedCategory === 'all' ? 'base' : 'subdued'} />
+                                    <Text as="span" variant="bodySm" fontWeight={selectedCategory === 'all' ? 'bold' : 'regular'}>Popular</Text>
+                                </BlockStack>
+                            </Box>
+                        </UnstyledButton>
+                        <UnstyledButton
+                            onClick={() => setSelectedCategory('installed')}
+                        >
+                            <Box
+                                padding="200"
+                                borderRadius="200"
+                                background={selectedCategory === 'installed' ? 'bg-fill-brand' : undefined}
+                            >
+                                <BlockStack align="center" inlineAlign="center" gap="100">
+                                    <Icon source={AppsIcon} tone={selectedCategory === 'installed' ? 'base' : 'subdued'} />
+                                    <Text as="span" variant="bodySm" fontWeight={selectedCategory === 'installed' ? 'bold' : 'regular'}>My Sections</Text>
+                                </BlockStack>
+                            </Box>
+                        </UnstyledButton>
+                        {categories.map((cat) => (
+                            <UnstyledButton
+                                key={cat.id}
+                                onClick={() => setSelectedCategory(cat.slug)}
+                            >
+                                <Box
+                                    padding="200"
+                                    borderRadius="200"
+                                    background={selectedCategory === cat.slug ? 'bg-fill-brand' : undefined}
+                                >
+                                    <BlockStack align="center" inlineAlign="center" gap="100">
+                                        <Text as="span" variant="bodyLg">{cat.icon || '✨'}</Text>
+                                        <Text as="span" variant="bodySm" fontWeight={selectedCategory === cat.slug ? 'bold' : 'regular'}>{cat.name}</Text>
+                                    </BlockStack>
+                                </Box>
+                            </UnstyledButton>
                         ))}
-                    </motion.div>
-                )}
-            </div>
+                    </div>
+                </Box>
 
-            {/* Subscription Modal */}
+                {/* Section Content */}
+                {loading ? (
+                    <Box padding="1000">
+                        <InlineStack align="center">
+                            <Spinner size="large" />
+                        </InlineStack>
+                    </Box>
+                ) : sections.length === 0 ? (
+                    <EmptyState
+                        heading="No sections found"
+                        action={{ content: 'Browse all', onAction: () => setSelectedCategory('all') }}
+                        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                    >
+                        <p>Try adjusting your search or category filters.</p>
+                    </EmptyState>
+                ) : (
+                    <BlockStack gap="600">
+                        <Text as="h2" variant="headingMd">
+                            {selectedCategory === 'all' ? 'Trending Now' :
+                                selectedCategory === 'installed' ? 'My Library' :
+                                    categories.find(c => c.slug === selectedCategory)?.name || 'Results'}
+                        </Text>
+
+                        <Layout>
+                            {sections.map((section) => (
+                                <Layout.Section key={section.id} variant="oneThird">
+                                    <Card padding="0">
+                                        <Box position="relative">
+                                            <Box
+                                                minHeight="160px"
+                                                background="bg-surface-secondary"
+                                                borderRadius="200"
+                                            >
+                                                {section.preview_image_url ? (
+                                                    <img
+                                                        src={section.preview_image_url}
+                                                        alt={section.name}
+                                                        style={{ width: '100%', height: '160px', objectFit: 'cover' }}
+                                                    />
+                                                ) : (
+                                                    <Box padding="1000">
+                                                        <InlineStack align="center">
+                                                            <Icon source={ViewIcon} tone="subdued" />
+                                                        </InlineStack>
+                                                    </Box>
+                                                )}
+                                            </Box>
+
+                                            <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+                                                <Badge tone={section.is_free ? 'success' : 'info'}>
+                                                    {section.is_free ? 'FREE' : `$${section.price}`}
+                                                </Badge>
+                                            </div>
+                                        </Box>
+
+                                        <Box padding="400">
+                                            <BlockStack gap="200">
+                                                <InlineStack align="space-between" blockAlign="center">
+                                                    <Text as="h3" variant="bodyMd" fontWeight="bold">
+                                                        {section.name} {section.price >= 10 && <Icon source={HeartIcon} tone="info" />}
+                                                    </Text>
+                                                </InlineStack>
+
+                                                <Text as="p" variant="bodySm" tone="subdued" breakWord>
+                                                    {section.description || 'No description available'}
+                                                </Text>
+
+                                                <Box paddingBlockStart="200">
+                                                    {selectedCategory === 'installed' ? (
+                                                        <Button
+                                                            variant="primary"
+                                                            tone="critical"
+                                                            fullWidth
+                                                            onClick={() => handleUninstall(section.id)}
+                                                            loading={installing === section.id}
+                                                        >
+                                                            Uninstall
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="primary"
+                                                            fullWidth
+                                                            onClick={() => {
+                                                                if (section.is_free || section.price === 0) {
+                                                                    handleInstall(section.id);
+                                                                } else {
+                                                                    handlePurchaseFlow(section);
+                                                                }
+                                                            }}
+                                                            loading={installing === section.id}
+                                                        >
+                                                            {section.is_free ? 'Install Section' : `Buy - $${section.price}`}
+                                                        </Button>
+                                                    )}
+                                                </Box>
+                                            </BlockStack>
+                                        </Box>
+                                    </Card>
+                                </Layout.Section>
+                            ))}
+                        </Layout>
+                    </BlockStack>
+                )}
+            </Box>
+
             {showSubscriptionModal && shopDomain && (
                 <SubscriptionModal
                     shopDomain={shopDomain}
                     onCloseAction={() => setShowSubscriptionModal(false)}
                 />
             )}
-        </div>
+
+            <Box padding="1000">
+                <Text as="p" alignment="center">
+                    <Button variant="plain" onClick={() => window.location.href = '/admin'}>Admin Access</Button>
+                </Text>
+            </Box>
+        </Box>
     );
 }

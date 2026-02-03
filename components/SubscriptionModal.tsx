@@ -1,7 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import {
+    Modal,
+    Card,
+    Layout,
+    Text,
+    Box,
+    BlockStack,
+    InlineStack,
+    Button,
+    List,
+    Spinner
+} from '@shopify/polaris';
 
 interface Plan {
     id: string;
@@ -20,15 +31,22 @@ export default function SubscriptionModal({
 }) {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
 
     useEffect(() => {
         fetchPlans();
     }, []);
 
     async function fetchPlans() {
-        const res = await fetch('/api/billing/plans');
-        const data = await res.json();
-        setPlans(data.plans || []);
+        try {
+            const res = await fetch('/api/billing/plans');
+            const data = await res.json();
+            setPlans(data.plans || []);
+        } catch (error) {
+            console.error('Failed to fetch plans');
+        } finally {
+            setFetching(false);
+        }
     }
 
     async function handleSubscribe(planId: string) {
@@ -52,50 +70,58 @@ export default function SubscriptionModal({
     }
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="glass-card max-w-4xl w-full p-8 bg-[hsl(var(--color-surface))]"
-            >
-                <h2 className="text-3xl font-bold gradient-text mb-6">Choose Your Plan</h2>
+        <Modal
+            open={true}
+            onClose={onCloseAction}
+            title="Choose Your Plan"
+            size="large"
+        >
+            <Modal.Section>
+                {fetching ? (
+                    <Box padding="1000">
+                        <InlineStack align="center">
+                            <Spinner size="large" />
+                        </InlineStack>
+                    </Box>
+                ) : (
+                    <Layout>
+                        {plans.map(plan => (
+                            <Layout.Section variant="oneHalf" key={plan.id}>
+                                <Card>
+                                    <Box padding="400">
+                                        <BlockStack gap="400">
+                                            <BlockStack gap="100">
+                                                <Text as="h3" variant="headingLg">{plan.name}</Text>
+                                                <InlineStack gap="200" blockAlign="baseline">
+                                                    <Text as="span" variant="heading2xl" fontWeight="bold">${plan.price}</Text>
+                                                    <Text as="span" variant="bodyMd" tone="subdued">/{plan.interval === 'EVERY_30_DAYS' ? 'month' : 'year'}</Text>
+                                                </InlineStack>
+                                            </BlockStack>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                    {plans.map(plan => (
-                        <div key={plan.id} className="glass-card p-6 border-2 border-[hsl(var(--color-border))] hover:border-[hsl(var(--color-primary))] transition-all">
-                            <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-                            <div className="text-4xl font-bold gradient-text mb-4">
-                                ${plan.price}
-                                <span className="text-sm text-[hsl(var(--color-text-muted))]">/{plan.interval}</span>
-                            </div>
+                                            <Box minHeight="120px">
+                                                <List type="bullet">
+                                                    {plan.features.map((feature, i) => (
+                                                        <List.Item key={i}>{feature}</List.Item>
+                                                    ))}
+                                                </List>
+                                            </Box>
 
-                            <ul className="space-y-2 mb-6">
-                                {plan.features.map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-2">
-                                        <span className="text-[hsl(var(--color-primary))]">✓</span>
-                                        <span>{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button
-                                onClick={() => handleSubscribe(plan.id)}
-                                disabled={loading}
-                                className="btn-primary w-full"
-                            >
-                                {loading ? 'Processing...' : 'Subscribe'}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-
-                <button
-                    onClick={onCloseAction}
-                    className="mt-6 text-[hsl(var(--color-text-muted))] hover:text-white"
-                >
-                    Close
-                </button>
-            </motion.div>
-        </div>
+                                            <Button
+                                                variant="primary"
+                                                fullWidth
+                                                loading={loading}
+                                                onClick={() => handleSubscribe(plan.id)}
+                                            >
+                                                Subscribe
+                                            </Button>
+                                        </BlockStack>
+                                    </Box>
+                                </Card>
+                            </Layout.Section>
+                        ))}
+                    </Layout>
+                )}
+            </Modal.Section>
+        </Modal>
     );
 }

@@ -9,25 +9,33 @@ import { installSectionToShopify } from '@/lib/shopify';
  */
 export async function POST(request: NextRequest) {
     try {
-        const { shopDomain, sectionId } = await request.json();
+        const { shopDomain: rawShopDomain, sectionId } = await request.json();
 
-        if (!shopDomain || !sectionId) {
+        if (!rawShopDomain || !sectionId) {
             return NextResponse.json(
                 { error: 'Missing required parameters' },
                 { status: 400 }
             );
         }
 
+        // Normalize shop domain: remove protocol and trailing slash
+        const shopDomain = rawShopDomain
+            .replace(/^https?:\/\//, '')
+            .replace(/\/$/, '');
+
+        console.log(`[Installation] Initiating for shop: ${shopDomain}, section: ${sectionId}`);
+
         // Get shop access token
         const { data: shop, error: shopError } = await supabaseAdmin
             .from('shops')
-            .select('access_token, id')
+            .select('access_token, id, shop_domain')
             .eq('shop_domain', shopDomain)
             .single();
 
         if (shopError || !shop) {
+            console.error(`[Installation] Shop not found in DB: ${shopDomain}`, shopError);
             return NextResponse.json(
-                { error: 'Shop not found' },
+                { error: `Shop not found: ${shopDomain}. Please try re-opening the app from Shopify Admin.` },
                 { status: 404 }
             );
         }

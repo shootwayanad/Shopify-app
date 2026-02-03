@@ -1,17 +1,52 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import SectionForm from '@/components/SectionForm';
+import { useEffect, useState, useCallback } from 'react';
+import {
+    Page,
+    Card,
+    IndexTable,
+    Button,
+    Text,
+    Box,
+    InlineStack,
+    Modal,
+    TextField,
+    Select,
+    Checkbox,
+    FormLayout,
+    Toast,
+    Frame,
+    Spinner,
+    BlockStack,
+    Badge,
+    Layout,
+    EmptyState,
+    Icon
+} from '@shopify/polaris';
+import {
+    PlusIcon,
+    EditIcon,
+    DeleteIcon,
+    AppsIcon,
+    StarIcon,
+    ImportIcon,
+    SearchIcon
+} from '@shopify/polaris-icons';
 
 interface Section {
     id: string;
     name: string;
     description: string;
+    category_id: string;
     is_free: boolean;
     price: number;
     downloads_count: number;
     is_active: boolean;
+    liquid_code: string;
+    schema_json: string | object;
+    css_code: string;
+    js_code: string;
+    preview_image_url: string;
     categories: {
         name: string;
     };
@@ -23,41 +58,52 @@ interface Category {
     slug: string;
 }
 
-export default function AdminPage() {
+export default function AdminDashboard() {
     const [sections, setSections] = useState<Section[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [stats, setStats] = useState({ total: 0, free: 0, paid: 0, installs: 0 });
-    const [showModal, setShowModal] = useState(false);
-    const [currentSection, setCurrentSection] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingSection, setEditingSection] = useState<Section | null>(null);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [formLoading, setFormLoading] = useState(false);
 
-    // Fetch data
-    useEffect(() => {
-        fetchSections();
-        fetchCategories();
-    }, []);
+    // Form State
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        category_id: '',
+        price: 0,
+        is_free: true,
+        liquid_code: '',
+        schema_json: '',
+        css_code: '',
+        js_code: '',
+        preview_image_url: '',
+    });
 
-    async function fetchSections() {
+    const [schemaError, setSchemaError] = useState<string | null>(null);
+
+    const fetchSections = useCallback(async () => {
+        setLoading(true);
         try {
             const res = await fetch('/api/admin/sections');
             const data = await res.json();
             setSections(data.sections || []);
 
-            // Calculate stats
             const total = data.sections?.length || 0;
             const free = data.sections?.filter((s: Section) => s.is_free).length || 0;
-            const paid = total - free;
             const installs = data.sections?.reduce((sum: number, s: Section) => sum + s.downloads_count, 0) || 0;
 
-            setStats({ total, free, paid, installs });
+            setStats({ total, free, paid: total - free, installs });
         } catch (error) {
             console.error('Failed to fetch sections:', error);
         } finally {
             setLoading(false);
         }
-    }
+    }, []);
 
-    async function fetchCategories() {
+    const fetchCategories = useCallback(async () => {
         try {
             const res = await fetch('/api/categories');
             const data = await res.json();
@@ -65,158 +111,342 @@ export default function AdminPage() {
         } catch (error) {
             console.error('Failed to fetch categories:', error);
         }
-    }
+    }, []);
 
-    async function handleDelete(id: string) {
+    useEffect(() => {
+        fetchSections();
+        fetchCategories();
+    }, [fetchSections, fetchCategories]);
+
+    const handleCreateSection = () => {
+        setEditingSection(null);
+        setFormData({
+            name: '',
+            description: '',
+            category_id: categories[0]?.id || '',
+            price: 0,
+            is_free: true,
+            liquid_code: '',
+            schema_json: '',
+            css_code: '',
+            js_code: '',
+            preview_image_url: '',
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleEditSection = (section: Section) => {
+        setEditingSection(section);
+        setFormData({
+            name: section.name,
+            description: section.description || '',
+            category_id: section.category_id,
+            price: section.price,
+            is_free: section.is_free,
+            liquid_code: section.liquid_code,
+            schema_json: typeof section.schema_json === 'string'
+                ? section.schema_json
+                : JSON.stringify(section.schema_json, null, 2),
+            css_code: section.css_code || '',
+            js_code: section.js_code || '',
+            preview_image_url: section.preview_image_url || '',
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteSection = async (id: string) => {
         if (!confirm('Are you sure you want to delete this section?')) return;
 
         try {
-            const res = await fetch(`/api/admin/sections?id=${id}`, {
-                method: 'DELETE',
+            const res = await fetch(`/api/admin/sections?id=${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                setToastMessage('Section deleted successfully');
+                fetchSections();
+            } else {
+                setToastMessage('Failed to delete section');
+            }
+        } catch (error) {
+            setToastMessage('Error deleting section');
+        }
+    };
+
+    const handleModalSubmit = async () => {
+        // Simple schema validation
+        try {
+            JSON.parse(formData.schema_json);
+            setSchemaError(null);
+        } catch (e) {
+            setSchemaError('Invalid JSON schema');
+            return;
+        }
+
+        setFormLoading(true);
+        try {
+            const url = '/api/admin/sections';
+            const method = editingSection ? 'PUT' : 'POST';
+            const body = editingSection ? { ...formData, id: editingSection.id } : formData;
+
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
             });
 
             if (res.ok) {
+                setToastMessage(editingSection ? 'Section updated' : 'Section created');
+                setIsModalOpen(false);
                 fetchSections();
-                alert('✅ Section deleted successfully');
             } else {
-                alert('❌ Failed to delete section');
+                setToastMessage('Failed to save section');
             }
         } catch (error) {
-            alert('❌ Failed to delete section');
+            setToastMessage('Error saving section');
+        } finally {
+            setFormLoading(false);
         }
-    }
+    };
 
-    return (
-        <div className="min-h-screen bg-[hsl(var(--color-bg))]">
-            {/* Header */}
-            <header className="border-b border-[hsl(var(--color-border))] bg-[hsl(var(--color-surface))]/50 backdrop-blur-lg">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <h1 className="text-4xl font-bold font-[family-name:var(--font-playfair)]">
-                        <span className="gradient-text">Admin Dashboard</span>
-                    </h1>
-                    <p className="text-[hsl(var(--color-text-muted))] mt-2">Manage your section library</p>
-                </div>
-            </header>
+    const categoryOptions = categories.map(c => ({ label: c.name, value: c.id }));
 
-            <div className="max-w-7xl mx-auto px-4 py-8">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <StatsCard title="Total Sections" value={stats.total} icon="📦" />
-                    <StatsCard title="Free Sections" value={stats.free} icon="🎁" />
-                    <StatsCard title="Paid Sections" value={stats.paid} icon="💰" />
-                    <StatsCard title="Total Installs" value={stats.installs} icon="📥" />
-                </div>
+    const resourceName = { singular: 'section', plural: 'sections' };
 
-                {/* Actions */}
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">All Sections</h2>
-                    <button
-                        onClick={() => {
-                            setCurrentSection(null);
-                            setShowModal(true);
-                        }}
-                        className="btn-primary"
-                    >
-                        + Create Section
-                    </button>
-                </div>
-
-                {/* Sections Table */}
-                {loading ? (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin text-6xl">⚙️</div>
-                    </div>
+    const rows = sections.map((section, index) => (
+        <IndexTable.Row id={section.id} key={section.id} position={index}>
+            <IndexTable.Cell>
+                <Text variant="bodyMd" fontWeight="bold" as="span">{section.name}</Text>
+            </IndexTable.Cell>
+            <IndexTable.Cell>{section.categories?.name || 'Uncategorized'}</IndexTable.Cell>
+            <IndexTable.Cell>
+                {section.is_free ? (
+                    <Badge tone="success">Free</Badge>
                 ) : (
-                    <div className="glass-card overflow-hidden">
-                        <table className="w-full">
-                            <thead className="bg-[hsl(var(--color-surface))] border-b border-[hsl(var(--color-border))]">
-                                <tr>
-                                    <th className="text-left p-4 font-semibold">Name</th>
-                                    <th className="text-left p-4 font-semibold">Category</th>
-                                    <th className="text-left p-4 font-semibold">Price</th>
-                                    <th className="text-left p-4 font-semibold">Installs</th>
-                                    <th className="text-left p-4 font-semibold">Status</th>
-                                    <th className="text-right p-4 font-semibold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sections.map((section) => (
-                                    <tr
-                                        key={section.id}
-                                        className="border-b border-[hsl(var(--color-border))] hover:bg-[hsl(var(--color-surface))]/30 transition-colors"
-                                    >
-                                        <td className="p-4">{section.name}</td>
-                                        <td className="p-4 text-[hsl(var(--color-text-muted))]">
-                                            {section.categories?.name || 'N/A'}
-                                        </td>
-                                        <td className="p-4">
-                                            {section.is_free ? (
-                                                <span className="text-green-500 font-semibold">FREE</span>
-                                            ) : (
-                                                `$${section.price}`
-                                            )}
-                                        </td>
-                                        <td className="p-4">{section.downloads_count}</td>
-                                        <td className="p-4">
-                                            {section.is_active ? (
-                                                <span className="text-green-500">● Active</span>
-                                            ) : (
-                                                <span className="text-gray-500">● Inactive</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-right">
-                                            <button
-                                                onClick={() => {
-                                                    setCurrentSection(section);
-                                                    setShowModal(true);
-                                                }}
-                                                className="text-[hsl(var(--color-primary))] hover:underline mr-3"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(section.id)}
-                                                className="text-red-500 hover:underline"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <Text as="span" variant="bodyMd">${section.price}</Text>
                 )}
-            </div>
+            </IndexTable.Cell>
+            <IndexTable.Cell>{section.downloads_count}</IndexTable.Cell>
+            <IndexTable.Cell>
+                <Badge tone={section.is_active ? 'success' : 'attention'}>
+                    {section.is_active ? 'Active' : 'Inactive'}
+                </Badge>
+            </IndexTable.Cell>
+            <IndexTable.Cell>
+                <InlineStack gap="200">
+                    <Button icon={EditIcon} onClick={() => handleEditSection(section)} size="slim" />
+                    <Button icon={DeleteIcon} tone="critical" onClick={() => handleDeleteSection(section.id)} size="slim" />
+                </InlineStack>
+            </IndexTable.Cell>
+        </IndexTable.Row>
+    ));
 
-            {/* Modal */}
-            {showModal && (
-                <SectionForm
-                    categories={categories}
-                    initialData={currentSection}
-                    onClose={() => setShowModal(false)}
-                    onSuccess={() => {
-                        fetchSections();
-                        setShowModal(false);
-                    }}
-                />
-            )}
-        </div>
-    );
-}
-
-function StatsCard({ title, value, icon }: { title: string; value: number; icon: string }) {
     return (
-        <motion.div
-            className="glass-card p-6"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-        >
-            <div className="flex items-center justify-between mb-2">
-                <span className="text-3xl">{icon}</span>
-                <span className="text-4xl font-bold gradient-text">{value}</span>
-            </div>
-            <p className="text-sm text-[hsl(var(--color-text-muted))]">{title}</p>
-        </motion.div>
+        <Frame>
+            <Page
+                title="Admin Dashboard"
+                subtitle="Manage your section library"
+                primaryAction={{
+                    content: 'Create Section',
+                    icon: PlusIcon,
+                    onAction: handleCreateSection
+                }}
+            >
+                {/* Stats Row */}
+                <Box paddingBlockEnd="600">
+                    <Layout>
+                        <Layout.Section variant="oneQuarter">
+                            <Card>
+                                <Box padding="400">
+                                    <InlineStack align="space-between">
+                                        <BlockStack gap="100">
+                                            <Text as="p" variant="bodySm" tone="subdued">Total Sections</Text>
+                                            <Text as="p" variant="headingLg">{stats.total}</Text>
+                                        </BlockStack>
+                                        <Icon source={AppsIcon} tone="info" />
+                                    </InlineStack>
+                                </Box>
+                            </Card>
+                        </Layout.Section>
+                        <Layout.Section variant="oneQuarter">
+                            <Card>
+                                <Box padding="400">
+                                    <InlineStack align="space-between">
+                                        <BlockStack gap="100">
+                                            <Text as="p" variant="bodySm" tone="subdued">Free Sections</Text>
+                                            <Text as="p" variant="headingLg">{stats.free}</Text>
+                                        </BlockStack>
+                                        <Icon source={StarIcon} tone="success" />
+                                    </InlineStack>
+                                </Box>
+                            </Card>
+                        </Layout.Section>
+                        <Layout.Section variant="oneQuarter">
+                            <Card>
+                                <Box padding="400">
+                                    <InlineStack align="space-between">
+                                        <BlockStack gap="100">
+                                            <Text as="p" variant="bodySm" tone="subdued">Paid Sections</Text>
+                                            <Text as="p" variant="headingLg">{stats.paid}</Text>
+                                        </BlockStack>
+                                        <Icon source={AppsIcon} tone="attention" />
+                                    </InlineStack>
+                                </Box>
+                            </Card>
+                        </Layout.Section>
+                        <Layout.Section variant="oneQuarter">
+                            <Card>
+                                <Box padding="400">
+                                    <InlineStack align="space-between">
+                                        <BlockStack gap="100">
+                                            <Text as="p" variant="bodySm" tone="subdued">Total Installs</Text>
+                                            <Text as="p" variant="headingLg">{stats.installs}</Text>
+                                        </BlockStack>
+                                        <Icon source={ImportIcon} tone="info" />
+                                    </InlineStack>
+                                </Box>
+                            </Card>
+                        </Layout.Section>
+                    </Layout>
+                </Box>
+
+                {/* Main Table */}
+                <Card padding="0">
+                    {loading ? (
+                        <Box padding="1000" textAlign="center">
+                            <Spinner size="large" />
+                        </Box>
+                    ) : sections.length === 0 ? (
+                        <EmptyState
+                            heading="No sections yet"
+                            action={{ content: 'Create your first section', onAction: handleCreateSection }}
+                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                        >
+                            <p>Upload your Liquid code and schema to start selling sections.</p>
+                        </EmptyState>
+                    ) : (
+                        <IndexTable
+                            resourceName={resourceName}
+                            itemCount={sections.length}
+                            selectable={false}
+                            headings={[
+                                { title: 'Name' },
+                                { title: 'Category' },
+                                { title: 'Price' },
+                                { title: 'Installs' },
+                                { title: 'Status' },
+                                { title: 'Actions' },
+                            ]}
+                        >
+                            {rows}
+                        </IndexTable>
+                    )}
+                </Card>
+
+                {/* Create/Edit Modal */}
+                <Modal
+                    open={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title={editingSection ? 'Edit Section' : 'Create Section'}
+                    primaryAction={{
+                        content: editingSection ? 'Update Section' : 'Add Section',
+                        onAction: handleModalSubmit,
+                        loading: formLoading
+                    }}
+                    secondaryActions={[
+                        {
+                            content: 'Cancel',
+                            onAction: () => setIsModalOpen(false),
+                        },
+                    ]}
+                >
+                    <Modal.Section>
+                        <FormLayout>
+                            <TextField
+                                label="Section Name"
+                                value={formData.name}
+                                onChange={(val) => setFormData({ ...formData, name: val })}
+                                autoComplete="off"
+                                required
+                            />
+                            <Select
+                                label="Category"
+                                options={categoryOptions}
+                                value={formData.category_id}
+                                onChange={(val) => setFormData({ ...formData, category_id: val })}
+                            />
+                            <TextField
+                                label="Description"
+                                value={formData.description}
+                                onChange={(val) => setFormData({ ...formData, description: val })}
+                                multiline={3}
+                                autoComplete="off"
+                            />
+                            <TextField
+                                label="Preview Image URL"
+                                value={formData.preview_image_url}
+                                onChange={(val) => setFormData({ ...formData, preview_image_url: val })}
+                                autoComplete="off"
+                            />
+                            <TextField
+                                label="Liquid Code"
+                                value={formData.liquid_code}
+                                onChange={(val) => setFormData({ ...formData, liquid_code: val })}
+                                multiline={8}
+                                monospaced
+                                autoComplete="off"
+                                required
+                            />
+                            <TextField
+                                label="Schema JSON"
+                                value={formData.schema_json}
+                                onChange={(val) => setFormData({ ...formData, schema_json: val })}
+                                multiline={8}
+                                monospaced
+                                autoComplete="off"
+                                error={schemaError}
+                                required
+                            />
+                            <FormLayout.Group>
+                                <TextField
+                                    label="CSS (Optional)"
+                                    value={formData.css_code}
+                                    onChange={(val) => setFormData({ ...formData, css_code: val })}
+                                    multiline={4}
+                                    monospaced
+                                    autoComplete="off"
+                                />
+                                <TextField
+                                    label="JS (Optional)"
+                                    value={formData.js_code}
+                                    onChange={(val) => setFormData({ ...formData, js_code: val })}
+                                    multiline={4}
+                                    monospaced
+                                    autoComplete="off"
+                                />
+                            </FormLayout.Group>
+                            <InlineStack gap="400" align="start">
+                                <Checkbox
+                                    label="Free Section"
+                                    checked={formData.is_free}
+                                    onChange={(val) => setFormData({ ...formData, is_free: val })}
+                                />
+                                {!formData.is_free && (
+                                    <TextField
+                                        label="Price ($)"
+                                        type="number"
+                                        value={String(formData.price)}
+                                        onChange={(val) => setFormData({ ...formData, price: parseFloat(val) || 0 })}
+                                        autoComplete="off"
+                                        prefix="$"
+                                    />
+                                )}
+                            </InlineStack>
+                        </FormLayout>
+                    </Modal.Section>
+                </Modal>
+
+                {toastMessage && (
+                    <Toast content={toastMessage} onDismiss={() => setToastMessage(null)} />
+                )}
+            </Page>
+        </Frame>
     );
 }
