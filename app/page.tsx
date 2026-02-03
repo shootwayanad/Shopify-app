@@ -14,7 +14,9 @@ import {
     EmptyState,
     Layout,
     Card,
-    Badge
+    Badge,
+    Frame,
+    Navigation
 } from '@shopify/polaris';
 import {
     SearchIcon,
@@ -23,7 +25,13 @@ import {
     AppsIcon,
     ViewIcon,
     PlusIcon,
-    HeartIcon
+    HeartIcon,
+    ProductIcon,
+    InventoryIcon,
+    QuestionCircleIcon,
+    LightbulbIcon,
+    MenuHorizontalIcon,
+    StoreIcon
 } from '@shopify/polaris-icons';
 import SubscriptionModal from '@/components/SubscriptionModal';
 
@@ -197,213 +205,260 @@ export default function HomePage() {
         }
     }
 
+    const navigationMarkup = (
+        <Navigation location="/">
+            <Navigation.Section
+                items={[
+                    {
+                        label: 'Section Store',
+                        icon: StoreIcon,
+                        onClick: () => setSelectedCategory('all'),
+                    },
+                ]}
+            />
+            <Navigation.Section
+                items={[
+                    {
+                        label: 'My Sections',
+                        icon: ProductIcon,
+                        selected: selectedCategory === 'installed',
+                        onClick: () => setSelectedCategory('installed'),
+                    },
+                    {
+                        label: 'Explore Sections',
+                        icon: SearchIcon,
+                        selected: selectedCategory !== 'installed',
+                        onClick: () => setSelectedCategory('all'),
+                    },
+                    {
+                        label: 'Bundle & Save',
+                        icon: InventoryIcon,
+                        onClick: () => { },
+                    },
+                    {
+                        label: 'Conversion Blocks',
+                        icon: AppsIcon,
+                        onClick: () => { },
+                    },
+                    {
+                        label: 'Helpcenter',
+                        icon: QuestionCircleIcon,
+                        onClick: () => { },
+                    },
+                    {
+                        label: 'Section Inspiration',
+                        icon: LightbulbIcon,
+                        onClick: () => { },
+                    },
+                    {
+                        label: 'View more',
+                        icon: MenuHorizontalIcon,
+                        onClick: () => { },
+                    },
+                ]}
+            />
+        </Navigation>
+    );
+
     return (
-        <Box background="bg-surface" minHeight="100vh">
-            {/* Header Content Inline to avoid reference issues */}
-            <Box padding="400" background="bg-surface" borderBlockEndWidth="025">
-                <InlineStack align="space-between" blockAlign="center" gap="400">
-                    <InlineStack gap="200" blockAlign="center">
-                        <Box background="bg-fill-brand-active" padding="200" borderRadius="200">
-                            <Text as="span" variant="headingMd" tone="base">S</Text>
+        <Frame navigation={navigationMarkup}>
+            <Box background="bg-surface" minHeight="100vh">
+                {/* Header Content */}
+                <Box padding="400" background="bg-surface" borderBlockEndWidth="025">
+                    <InlineStack align="space-between" blockAlign="center" gap="400">
+                        {/* Title hidden because it's in the sidebar now, but keeping for layout structure if needed */}
+                        <div style={{ visibility: 'hidden', width: '200px' }}>
+                            <InlineStack gap="200" blockAlign="center">
+                                <Box background="bg-fill-brand-active" padding="200" borderRadius="200">
+                                    <Text as="span" variant="headingMd" tone="base">S</Text>
+                                </Box>
+                                <Text as="h1" variant="headingMd">Section Store</Text>
+                            </InlineStack>
+                        </div>
+
+                        <Box width="60%">
+                            <TextField
+                                label="Search for sections"
+                                labelHidden
+                                value={searchQuery}
+                                onChange={(value) => setSearchQuery(value)}
+                                placeholder="Search for sections"
+                                prefix={<Icon source={SearchIcon} />}
+                                autoComplete="off"
+                            />
                         </Box>
-                        <Text as="h1" variant="headingMd">Section Store</Text>
-                    </InlineStack>
 
-                    <Box width="60%">
-                        <TextField
-                            label="Search for sections"
-                            labelHidden
-                            value={searchQuery}
-                            onChange={(value) => setSearchQuery(value)}
-                            placeholder="Search for sections"
-                            prefix={<Icon source={SearchIcon} />}
-                            autoComplete="off"
-                        />
-                    </Box>
-
-                    <InlineStack gap="200">
-                        <Button
-                            icon={FilterIcon}
-                            onClick={() => { }}
-                        >
-                            Categories
-                        </Button>
-                        <Button variant="primary" onClick={() => setShowSubscriptionModal(true)}>
-                            Subscribe
-                        </Button>
-                    </InlineStack>
-                </InlineStack>
-            </Box>
-
-            <Box paddingInlineStart="400" paddingInlineEnd="400" paddingBlockStart="400" paddingBlockEnd="400">
-                {/* Category Pills */}
-                <Box paddingBlockEnd="600">
-                    <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: '16px', paddingBottom: '12px', paddingLeft: '4px' }}>
-                        <UnstyledButton
-                            onClick={() => setSelectedCategory('all')}
-                        >
-                            <Box
-                                padding="200"
-                                borderRadius="200"
-                                background={selectedCategory === 'all' ? 'bg-fill-brand' : undefined}
+                        <InlineStack gap="200">
+                            <Button
+                                icon={FilterIcon}
+                                onClick={() => { }}
                             >
-                                <BlockStack align="center" inlineAlign="center" gap="100">
-                                    <Icon source={StarFilledIcon} tone={selectedCategory === 'all' ? 'base' : 'subdued'} />
-                                    <Text as="span" variant="bodySm" fontWeight={selectedCategory === 'all' ? 'bold' : 'regular'}>Popular</Text>
-                                </BlockStack>
-                            </Box>
-                        </UnstyledButton>
-                        <UnstyledButton
-                            onClick={() => setSelectedCategory('installed')}
-                        >
-                            <Box
-                                padding="200"
-                                borderRadius="200"
-                                background={selectedCategory === 'installed' ? 'bg-fill-brand' : undefined}
-                            >
-                                <BlockStack align="center" inlineAlign="center" gap="100">
-                                    <Icon source={AppsIcon} tone={selectedCategory === 'installed' ? 'base' : 'subdued'} />
-                                    <Text as="span" variant="bodySm" fontWeight={selectedCategory === 'installed' ? 'bold' : 'regular'}>My Sections</Text>
-                                </BlockStack>
-                            </Box>
-                        </UnstyledButton>
-                        {categories.map((cat) => (
+                                Categories
+                            </Button>
+                            <Button variant="primary" onClick={() => setShowSubscriptionModal(true)}>
+                                Subscribe
+                            </Button>
+                        </InlineStack>
+                    </InlineStack>
+                </Box>
+
+                <Box paddingInlineStart="400" paddingInlineEnd="400" paddingBlockStart="400" paddingBlockEnd="400">
+                    {/* Category Pills (Secondary filtering) */}
+                    <Box paddingBlockEnd="600">
+                        <div style={{ overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: '16px', paddingBottom: '12px', paddingLeft: '4px' }}>
                             <UnstyledButton
-                                key={cat.id}
-                                onClick={() => setSelectedCategory(cat.slug)}
+                                onClick={() => setSelectedCategory('all')}
                             >
                                 <Box
                                     padding="200"
                                     borderRadius="200"
-                                    background={selectedCategory === cat.slug ? 'bg-fill-brand' : undefined}
+                                    background={selectedCategory === 'all' ? 'bg-fill-brand' : undefined}
                                 >
                                     <BlockStack align="center" inlineAlign="center" gap="100">
-                                        <Text as="span" variant="bodyLg">{cat.icon || '✨'}</Text>
-                                        <Text as="span" variant="bodySm" fontWeight={selectedCategory === cat.slug ? 'bold' : 'regular'}>{cat.name}</Text>
+                                        <Icon source={StarFilledIcon} tone={selectedCategory === 'all' ? 'base' : 'subdued'} />
+                                        <Text as="span" variant="bodySm" fontWeight={selectedCategory === 'all' ? 'bold' : 'regular'}>Popular</Text>
                                     </BlockStack>
                                 </Box>
                             </UnstyledButton>
-                        ))}
-                    </div>
-                </Box>
 
-                {/* Section Content */}
-                {loading ? (
-                    <Box padding="1000">
-                        <InlineStack align="center">
-                            <Spinner size="large" />
-                        </InlineStack>
+                            {categories.map((cat) => (
+                                <UnstyledButton
+                                    key={cat.id}
+                                    onClick={() => setSelectedCategory(cat.slug)}
+                                >
+                                    <Box
+                                        padding="200"
+                                        borderRadius="200"
+                                        background={selectedCategory === cat.slug ? 'bg-fill-brand' : undefined}
+                                    >
+                                        <BlockStack align="center" inlineAlign="center" gap="100">
+                                            <Text as="span" variant="bodyLg">{cat.icon || '✨'}</Text>
+                                            <Text as="span" variant="bodySm" fontWeight={selectedCategory === cat.slug ? 'bold' : 'regular'}>{cat.name}</Text>
+                                        </BlockStack>
+                                    </Box>
+                                </UnstyledButton>
+                            ))}
+                        </div>
                     </Box>
-                ) : sections.length === 0 ? (
-                    <EmptyState
-                        heading="No sections found"
-                        action={{ content: 'Browse all', onAction: () => setSelectedCategory('all') }}
-                        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                    >
-                        <p>Try adjusting your search or category filters.</p>
-                    </EmptyState>
-                ) : (
-                    <BlockStack gap="600">
-                        <Text as="h2" variant="headingMd">
-                            {selectedCategory === 'all' ? 'Trending Now' :
-                                selectedCategory === 'installed' ? 'My Library' :
-                                    categories.find(c => c.slug === selectedCategory)?.name || 'Results'}
-                        </Text>
 
-                        <Layout>
-                            {sections.map((section) => (
-                                <Layout.Section key={section.id} variant="oneThird">
-                                    <Card padding="0">
-                                        <Box position="relative">
-                                            <Box
-                                                minHeight="160px"
-                                                background="bg-surface-secondary"
-                                                borderRadius="200"
-                                            >
-                                                {section.preview_image_url ? (
-                                                    <img
-                                                        src={section.preview_image_url}
-                                                        alt={section.name}
-                                                        style={{ width: '100%', height: '160px', objectFit: 'cover' }}
-                                                    />
-                                                ) : (
-                                                    <Box padding="1000">
-                                                        <InlineStack align="center">
-                                                            <Icon source={ViewIcon} tone="subdued" />
-                                                        </InlineStack>
-                                                    </Box>
-                                                )}
-                                            </Box>
+                    {/* Section Content */}
+                    {loading ? (
+                        <Box padding="1000">
+                            <InlineStack align="center">
+                                <Spinner size="large" />
+                            </InlineStack>
+                        </Box>
+                    ) : sections.length === 0 ? (
+                        <EmptyState
+                            heading="No sections found"
+                            action={{ content: 'Browse all', onAction: () => setSelectedCategory('all') }}
+                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                        >
+                            <p>Try adjusting your search or category filters.</p>
+                        </EmptyState>
+                    ) : (
+                        <BlockStack gap="600">
+                            <Text as="h2" variant="headingMd">
+                                {selectedCategory === 'all' ? 'Trending Now' :
+                                    selectedCategory === 'installed' ? 'My Library' :
+                                        categories.find(c => c.slug === selectedCategory)?.name || 'Results'}
+                            </Text>
 
-                                            <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-                                                <Badge tone={section.is_free ? 'success' : 'info'}>
-                                                    {section.is_free ? 'FREE' : `$${section.price}`}
-                                                </Badge>
-                                            </div>
-                                        </Box>
-
-                                        <Box padding="400">
-                                            <BlockStack gap="200">
-                                                <InlineStack align="space-between" blockAlign="center">
-                                                    <Text as="h3" variant="bodyMd" fontWeight="bold">
-                                                        {section.name} {section.price >= 10 && <Icon source={HeartIcon} tone="info" />}
-                                                    </Text>
-                                                </InlineStack>
-
-                                                <Text as="p" variant="bodySm" tone="subdued" breakWord>
-                                                    {section.description || 'No description available'}
-                                                </Text>
-
-                                                <Box paddingBlockStart="200">
-                                                    {selectedCategory === 'installed' ? (
-                                                        <Button
-                                                            variant="primary"
-                                                            tone="critical"
-                                                            fullWidth
-                                                            onClick={() => handleUninstall(section.id)}
-                                                            loading={installing === section.id}
-                                                        >
-                                                            Uninstall
-                                                        </Button>
+                            <Layout>
+                                {sections.map((section) => (
+                                    <Layout.Section key={section.id} variant="oneThird">
+                                        <Card padding="0">
+                                            <Box position="relative">
+                                                <Box
+                                                    minHeight="160px"
+                                                    background="bg-surface-secondary"
+                                                    borderRadius="200"
+                                                >
+                                                    {section.preview_image_url ? (
+                                                        <img
+                                                            src={section.preview_image_url}
+                                                            alt={section.name}
+                                                            style={{ width: '100%', height: '160px', objectFit: 'cover' }}
+                                                        />
                                                     ) : (
-                                                        <Button
-                                                            variant="primary"
-                                                            fullWidth
-                                                            onClick={() => {
-                                                                if (section.is_free || section.price === 0) {
-                                                                    handleInstall(section.id);
-                                                                } else {
-                                                                    handlePurchaseFlow(section);
-                                                                }
-                                                            }}
-                                                            loading={installing === section.id}
-                                                        >
-                                                            {section.is_free ? 'Install Section' : `Buy - $${section.price}`}
-                                                        </Button>
+                                                        <Box padding="1000">
+                                                            <InlineStack align="center">
+                                                                <Icon source={ViewIcon} tone="subdued" />
+                                                            </InlineStack>
+                                                        </Box>
                                                     )}
                                                 </Box>
-                                            </BlockStack>
-                                        </Box>
-                                    </Card>
-                                </Layout.Section>
-                            ))}
-                        </Layout>
-                    </BlockStack>
+
+                                                <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+                                                    <Badge tone={section.is_free ? 'success' : 'info'}>
+                                                        {section.is_free ? 'FREE' : `$${section.price}`}
+                                                    </Badge>
+                                                </div>
+                                            </Box>
+
+                                            <Box padding="400">
+                                                <BlockStack gap="200">
+                                                    <InlineStack align="space-between" blockAlign="center">
+                                                        <Text as="h3" variant="bodyMd" fontWeight="bold">
+                                                            {section.name} {section.price >= 10 && <Icon source={HeartIcon} tone="info" />}
+                                                        </Text>
+                                                    </InlineStack>
+
+                                                    <Text as="p" variant="bodySm" tone="subdued" breakWord>
+                                                        {section.description || 'No description available'}
+                                                    </Text>
+
+                                                    <Box paddingBlockStart="200">
+                                                        {selectedCategory === 'installed' ? (
+                                                            <Button
+                                                                variant="primary"
+                                                                tone="critical"
+                                                                fullWidth
+                                                                onClick={() => handleUninstall(section.id)}
+                                                                loading={installing === section.id}
+                                                            >
+                                                                Uninstall
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                variant="primary"
+                                                                fullWidth
+                                                                onClick={() => {
+                                                                    if (section.is_free || section.price === 0) {
+                                                                        handleInstall(section.id);
+                                                                    } else {
+                                                                        handlePurchaseFlow(section);
+                                                                    }
+                                                                }}
+                                                                loading={installing === section.id}
+                                                            >
+                                                                {section.is_free ? 'Install Section' : `Buy - $${section.price}`}
+                                                            </Button>
+                                                        )}
+                                                    </Box>
+                                                </BlockStack>
+                                            </Box>
+                                        </Card>
+                                    </Layout.Section>
+                                ))}
+                            </Layout>
+                        </BlockStack>
+                    )}
+                </Box>
+
+                {showSubscriptionModal && shopDomain && (
+                    <SubscriptionModal
+                        shopDomain={shopDomain}
+                        onCloseAction={() => setShowSubscriptionModal(false)}
+                    />
                 )}
-            </Box>
 
-            {showSubscriptionModal && shopDomain && (
-                <SubscriptionModal
-                    shopDomain={shopDomain}
-                    onCloseAction={() => setShowSubscriptionModal(false)}
-                />
-            )}
-
-            <Box padding="1000">
-                <Text as="p" alignment="center">
-                    <Button variant="plain" onClick={() => window.location.href = '/admin'}>Admin Access</Button>
-                </Text>
+                <Box padding="1000">
+                    <Text as="p" alignment="center">
+                        <Button variant="plain" onClick={() => window.location.href = '/admin'}>Admin Access</Button>
+                    </Text>
+                </Box>
             </Box>
-        </Box>
+        </Frame>
     );
 }
